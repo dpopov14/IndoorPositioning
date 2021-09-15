@@ -46,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
             for (Beacon b : beacons) {
                 System.out.println("Beacon with hardware address: "
                         + b.getHardwareAddress()
-                        + "found");
+                        + "found\n" + "With UID" + b.getIdentifierAsUuid(1));
             }
         })
                 .setBeaconParser(beaconParser) // Set this scanners parser to the parser we created
