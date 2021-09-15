@@ -42,17 +42,29 @@ public class MainActivity extends AppCompatActivity {
         BeaconScanner beaconScanner = new BeaconScanner.Builder(this).setBeaconBatchListener(beacons -> {
             System.out.println("Scanning...");
             // Add to external list in order to pass beacons to the range finder (Hacky, fix later)
-            beaconList.addAll(beacons);
+            for(Beacon b : beacons){
+                boolean flag = true;
+                for(Beacon b2 : beaconList){
+                    if (b2.getIdentifierAsUuid(1).equals(b.getIdentifierAsUuid(1))){
+                        flag = false;
+                    }
+                }
+                if(flag){
+                    beaconList.add(b);
+                }
+            }
+//            beaconList.addAll(beacons);
             for (Beacon b : beacons) {
                 System.out.println("Beacon with hardware address: "
-                        + b.getHardwareAddress()
+                        + b.getIdentifierAsUuid(1)
                         + "found");
             }
         })
+                .setRangingEnabled()
                 .setBeaconParser(beaconParser) // Set this scanners parser to the parser we created
                 .build();
         // Create ranger
-        Ranger ranger = beaconScanner.getRanger();
+//        Ranger ranger = beaconScanner.getRanger();
 
         // Check if app has permission for fine location and coarse location
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -60,14 +72,33 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 42);
             return;
         }
-        // Start the beaconScanner
-        beaconScanner.start();
 
-        // Find distance to all beacons found (Idk if this works, still needs to be tested on actual
-        // beacons...)
-        for (Beacon b : beaconList) {
-            System.out.println("distance: " + ranger.calculateDistance(b));
-        }
+        button = findViewById(R.id.start_scan);
+        button.setOnClickListener(v -> {
+            // Start the beaconScanner
+            beaconScanner.start();
+        });
+
+        button = findViewById(R.id.stop_scan);
+        button.setOnClickListener(v -> {
+            beaconScanner.stop();
+            System.out.println("Stopped");
+        });
+
+        button = findViewById(R.id.print_button);
+        button.setOnClickListener(v -> {
+
+            System.out.println(beaconList);
+            // Find distance to all beacons found (Idk if this works, still needs to be tested on actual
+            // beacons...)
+            Ranger ranger = beaconScanner.getRanger();
+            for (Beacon b : beaconList) {
+                System.out.println(ranger);
+                System.out.println("distance: " + ranger.calculateDistance(b));
+            }
+        });
+
+
 
 
 
