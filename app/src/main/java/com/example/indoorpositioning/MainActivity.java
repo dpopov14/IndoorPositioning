@@ -6,6 +6,7 @@ import androidx.lifecycle.Observer;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
@@ -132,6 +133,14 @@ public class MainActivity extends AppCompatActivity {
             LatLng myLocation = getLocationByTrilateration(beacon1, distances.get(0), beacon2, distances.get(1), beacon3, distances.get(2));
 
             System.out.println("\n \n \n"+ "Your location is: " + myLocation.toString());
+
+            Intent intent = new Intent(MainActivity.this, MapActivity.class);
+            double[] latlnarr = new double[2];
+            latlnarr[0] = myLocation.latitude;
+            latlnarr[1] = myLocation.longitude;
+            intent.putExtra("latlon", latlnarr);
+            startActivity(intent);
+
 
 
         });

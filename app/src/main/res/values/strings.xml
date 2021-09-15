@@ -4,4 +4,5 @@
     <string name="start_scan">Start scan</string>
     <string name="print_distance">Print distance</string>
     <string name="stop_scan">Stop scan</string>
+    <string name="back_to_main_menu">Back to main menu</string>
 </resources>
