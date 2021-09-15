@@ -8,21 +8,22 @@
     <Button
         android:id="@+id/print_button"
         android:layout_width="139dp"
-        android:layout_height="92dp"
+        android:layout_height="0dp"
+        android:layout_marginBottom="72dp"
         android:text="@string/print_distance"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/result_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/stop_scan" />
 
     <Button
         android:id="@+id/start_scan"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="92dp"
-        android:layout_marginBottom="344dp"
+        android:layout_marginBottom="68dp"
         android:text="@string/start_scan"
-        app:layout_constraintBottom_toTopOf="@+id/result_button"
+        app:layout_constraintBottom_toTopOf="@+id/stop_scan"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -31,11 +32,12 @@
         android:id="@+id/stop_scan"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="144dp"
+        android:layout_marginStart="8dp"
         android:layout_marginBottom="64dp"
         android:text="@string/stop_scan"
         app:layout_constraintBottom_toTopOf="@+id/print_button"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="@+id/print_button"
+        app:layout_constraintTop_toBottomOf="@+id/start_scan" />
 
     <Button
         android:id="@+id/result_button"
@@ -46,5 +48,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/start_scan" />
+        app:layout_constraintTop_toBottomOf="@+id/print_button" />
 </androidx.constraintlayout.widget.ConstraintLayout>

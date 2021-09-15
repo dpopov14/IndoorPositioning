@@ -1,22 +1,17 @@
 package com.example.indoorpositioning;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.lifecycle.Observer;
-
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 
-import com.example.indoorpositioning.R;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+
 import com.google.android.gms.maps.model.LatLng;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
     // Create parser from layout
     IBeaconParser beaconParser = BeaconParserFactory.createFromLayout(beaconLayout);
 
+    @SuppressLint("MissingPermission")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -62,7 +58,9 @@ public class MainActivity extends AppCompatActivity {
                         + "found");
             }
         })
-                .setRangingEnabled()
+                .setRangingEnabled(
+//                        new ArmaFilter.Builder()
+                )
                 .setBeaconParser(beaconParser) // Set this scanners parser to the parser we created
                 .build();
         // Create ranger
@@ -72,12 +70,13 @@ public class MainActivity extends AppCompatActivity {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // Ask for permission in case app does not have it yet
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 42);
-            return;
+//            return;
         }
 
         button = findViewById(R.id.start_scan);
         button.setOnClickListener(v -> {
             // Start the beaconScanner
+            beaconList.clear();
             beaconScanner.start();
         });
 
@@ -94,10 +93,15 @@ public class MainActivity extends AppCompatActivity {
             // Find distance to all beacons found (Idk if this works, still needs to be tested on actual
             // beacons...)
             Ranger ranger = beaconScanner.getRanger();
-            for (Beacon b : beaconList) {
-                System.out.println(ranger);
-                System.out.println("distance: " + ranger.calculateDistance(b));
+            if(beaconList.isEmpty()){
+                System.out.println("No beacons detected yet.");
             }
+            else {
+                for (Beacon b : beaconList) {
+                    System.out.println("distance: " + ranger.calculateDistance(b));
+                }
+            }
+
 
 //            List<Double> distances = new ArrayList<>();
 //            for (Beacon b : beaconList) {
@@ -144,12 +148,6 @@ public class MainActivity extends AppCompatActivity {
 
 
         });
-
-
-
-
-
-
 
     }
 
