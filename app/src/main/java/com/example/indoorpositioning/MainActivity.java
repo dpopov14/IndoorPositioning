@@ -65,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Find distance to all beacons found (Idk if this works, still needs to be tested on actual
         // beacons...)
+//        bruv
         for (Beacon b : beaconList) {
             System.out.println("distance: " + ranger.calculateDistance(b));
         }
