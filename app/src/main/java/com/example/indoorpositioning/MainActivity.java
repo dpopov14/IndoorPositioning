@@ -1,27 +1,24 @@
 package com.example.indoorpositioning;
+
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.util.Pair;
 import android.widget.Button;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+
 import com.google.android.gms.maps.model.LatLng;
-import org.apache.poi.hssf.usermodel.HSSFCell;
-import org.apache.poi.hssf.usermodel.HSSFRow;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.poifs.filesystem.POIFSFileSystem;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import java.io.IOException;
-import java.io.InputStream;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
 import aga.android.luch.Beacon;
 import aga.android.luch.BeaconScanner;
 import aga.android.luch.Ranger;
@@ -35,20 +32,23 @@ public class MainActivity extends AppCompatActivity {
     String beaconLayout = "m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24";
     // Create parser from layout
     IBeaconParser beaconParser = BeaconParserFactory.createFromLayout(beaconLayout);
+    Map<String, LatLng> beaconInfo = new HashMap<>();
+    List<Beacon> beaconList = new ArrayList<>(); // External list for storing found beacons
 
     @SuppressLint("MissingPermission")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        List<Beacon> beaconList = new ArrayList<>(); // External list for storing found beacons
+
+
         BeaconScanner beaconScanner = new BeaconScanner.Builder(this).setBeaconBatchListener(beacons -> {
             System.out.println("Scanning...");
             // Add to external list in order to pass beacons to the range finder (Hacky, fix later)
             for(Beacon b : beacons){
                 boolean flag = true;
                 for(Beacon b2 : beaconList){
-                    if (b2.getHardwareAddress().equals(b.getHardwareAddress())){
+                    if (b2.getIdentifierAsUuid(1).equals(b.getIdentifierAsUuid(1))){
                         flag = false;
                     }
                 }
@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
 //            beaconList.addAll(beacons);
             for (Beacon b : beacons) {
                 System.out.println("Beacon with hardware address: "
-                        + b.getHardwareAddress()
+                        + b.getIdentifierAsUuid(1)
                         + "found");
             }
         })
@@ -107,14 +107,36 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
+
+//            List<Double> distances = new ArrayList<>();
+//            for (Beacon b : beaconList) {
+//                distances.add(ranger.calculateDistance(b));
+//
+//            }
+//
+//            LatLng beacon1 = new LatLng(52.239605161068916, 6.8561297907129);
+//            LatLng beacon2 = new LatLng(52.23962647614489, 6.855389661731008);
+//            LatLng beacon3 = new LatLng(52.239152334736275, 6.85544656789618);
+//
+//            LatLng myLocation = getLocationByTrilateration(beacon1, distances.get(0), beacon2, distances.get(1), beacon3, distances.get(2));
+//            System.out.println("\n \n \n"+ myLocation.toString());
+
+
+
+
         });
 
         button = findViewById(R.id.result_button);
         button.setOnClickListener(v -> {
             Ranger ranger = beaconScanner.getRanger();
             List<Double> distances = new ArrayList<>();
+
+            Map<Beacon, Double> beaconAndDistance= new HashMap<>();
+
             for (Beacon b : beaconList) {
+
                 distances.add(ranger.calculateDistance(b));
+                beaconAndDistance.put(b, ranger.calculateDistance(b));
 
             }
 
@@ -127,9 +149,22 @@ public class MainActivity extends AppCompatActivity {
             System.out.println("\n \n \n"+ "Your location is: " + myLocation.toString());
 
             Intent intent = new Intent(MainActivity.this, MapActivity.class);
-            double[] latlnarr = new double[2];
+//            double[] latlnarr = new double[2];
+            double[] latlnarr = new double[8]; //new code for coordinates
             latlnarr[0] = myLocation.latitude;
             latlnarr[1] = myLocation.longitude;
+
+            //New code for coordinates
+            List<Double> closestBeaconsCoor = closestBeaconsCoordinates(beaconAndDistance, distances, ranger);
+            latlnarr[2] = closestBeaconsCoor.get(0);
+            latlnarr[3] = closestBeaconsCoor.get(1);
+            latlnarr[4] = closestBeaconsCoor.get(2);
+            latlnarr[5] = closestBeaconsCoor.get(3);
+            latlnarr[6] = closestBeaconsCoor.get(4);
+            latlnarr[7] = closestBeaconsCoor.get(5);
+
+
+
             intent.putExtra("latlon", latlnarr);
             startActivity(intent);
 
@@ -138,6 +173,44 @@ public class MainActivity extends AppCompatActivity {
         });
 
     }
+
+    public <K, V> K getKey(Map<K, V> map, V value) {
+        for (Map.Entry<K, V> entry : map.entrySet()) {
+            if (entry.getValue().equals(value)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+    public List<Double> closestBeaconsCoordinates(Map<Beacon, Double> beaconAndDistance
+                                                          ,List<Double> distances, Ranger ranger){
+        List<Double> distances1 = (List) beaconAndDistance.values();
+        Collections.sort(distances1);
+        Collections.reverse(distances1);
+        List<Double> result = new ArrayList<>();
+
+
+        for(int i = 0; i <3; i++){
+//            String address = getKey(beaconAndDistance, distances1.get(i)).getHardwareAddress();
+//            LatLng latLng = beaconInfo.get(address);
+//            result.add(latLng.latitude);
+//            result.add(latLng.longitude);
+
+            for(Beacon b: beaconList){
+//                if(distances.contains(ranger.calculateDistance(b))){
+                if(distances.get(i).equals(ranger.calculateDistance(b))){
+                    LatLng latLng = beaconInfo.get(b.getHardwareAddress());
+                    result.add(latLng.latitude);
+                    result.add(latLng.longitude);
+//                  result.add(beaconInfo.get(b.getHardwareAddress()));
+                }
+            }
+        }
+        System.out.println(result);
+        return result;
+    }
+
+
     public LatLng getLocationByTrilateration(
             LatLng location1, double distance1,
             LatLng location2, double distance2,
