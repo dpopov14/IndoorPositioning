@@ -1,20 +1,27 @@
 package com.example.indoorpositioning;
-
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.widget.Button;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-
 import com.google.android.gms.maps.model.LatLng;
-
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
-
+import java.util.Map;
 import aga.android.luch.Beacon;
 import aga.android.luch.BeaconScanner;
 import aga.android.luch.Ranger;
@@ -34,16 +41,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         List<Beacon> beaconList = new ArrayList<>(); // External list for storing found beacons
-
         BeaconScanner beaconScanner = new BeaconScanner.Builder(this).setBeaconBatchListener(beacons -> {
             System.out.println("Scanning...");
             // Add to external list in order to pass beacons to the range finder (Hacky, fix later)
             for(Beacon b : beacons){
                 boolean flag = true;
                 for(Beacon b2 : beaconList){
-                    if (b2.getIdentifierAsUuid(1).equals(b.getIdentifierAsUuid(1))){
+                    if (b2.getHardwareAddress().equals(b.getHardwareAddress())){
                         flag = false;
                     }
                 }
@@ -54,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
 //            beaconList.addAll(beacons);
             for (Beacon b : beacons) {
                 System.out.println("Beacon with hardware address: "
-                        + b.getIdentifierAsUuid(1)
+                        + b.getHardwareAddress()
                         + "found");
             }
         })
@@ -102,23 +107,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-
-//            List<Double> distances = new ArrayList<>();
-//            for (Beacon b : beaconList) {
-//                distances.add(ranger.calculateDistance(b));
-//
-//            }
-//
-//            LatLng beacon1 = new LatLng(52.239605161068916, 6.8561297907129);
-//            LatLng beacon2 = new LatLng(52.23962647614489, 6.855389661731008);
-//            LatLng beacon3 = new LatLng(52.239152334736275, 6.85544656789618);
-//
-//            LatLng myLocation = getLocationByTrilateration(beacon1, distances.get(0), beacon2, distances.get(1), beacon3, distances.get(2));
-//            System.out.println("\n \n \n"+ myLocation.toString());
-
-
-
-
         });
 
         button = findViewById(R.id.result_button);
@@ -150,7 +138,6 @@ public class MainActivity extends AppCompatActivity {
         });
 
     }
-
     public LatLng getLocationByTrilateration(
             LatLng location1, double distance1,
             LatLng location2, double distance2,
