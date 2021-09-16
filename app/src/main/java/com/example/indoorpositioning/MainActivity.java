@@ -5,6 +5,7 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.util.Pair;
 import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -13,7 +14,10 @@ import androidx.core.app.ActivityCompat;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import aga.android.luch.Beacon;
 import aga.android.luch.BeaconScanner;
@@ -28,6 +32,8 @@ public class MainActivity extends AppCompatActivity {
     String beaconLayout = "m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24";
     // Create parser from layout
     IBeaconParser beaconParser = BeaconParserFactory.createFromLayout(beaconLayout);
+    Map<String, LatLng> beaconInfo = new HashMap<>();
+    List<Beacon> beaconList = new ArrayList<>(); // External list for storing found beacons
 
     @SuppressLint("MissingPermission")
     @Override
@@ -35,7 +41,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        List<Beacon> beaconList = new ArrayList<>(); // External list for storing found beacons
 
         BeaconScanner beaconScanner = new BeaconScanner.Builder(this).setBeaconBatchListener(beacons -> {
             System.out.println("Scanning...");
@@ -125,8 +130,13 @@ public class MainActivity extends AppCompatActivity {
         button.setOnClickListener(v -> {
             Ranger ranger = beaconScanner.getRanger();
             List<Double> distances = new ArrayList<>();
+
+            Map<Beacon, Double> beaconAndDistance= new HashMap<>();
+
             for (Beacon b : beaconList) {
+
                 distances.add(ranger.calculateDistance(b));
+                beaconAndDistance.put(b, ranger.calculateDistance(b));
 
             }
 
@@ -139,9 +149,22 @@ public class MainActivity extends AppCompatActivity {
             System.out.println("\n \n \n"+ "Your location is: " + myLocation.toString());
 
             Intent intent = new Intent(MainActivity.this, MapActivity.class);
-            double[] latlnarr = new double[2];
+//            double[] latlnarr = new double[2];
+            double[] latlnarr = new double[8]; //new code for coordinates
             latlnarr[0] = myLocation.latitude;
             latlnarr[1] = myLocation.longitude;
+
+            //New code for coordinates
+            List<Double> closestBeaconsCoor = closestBeaconsCoordinates(beaconAndDistance, distances, ranger);
+            latlnarr[2] = closestBeaconsCoor.get(0);
+            latlnarr[3] = closestBeaconsCoor.get(1);
+            latlnarr[4] = closestBeaconsCoor.get(2);
+            latlnarr[5] = closestBeaconsCoor.get(3);
+            latlnarr[6] = closestBeaconsCoor.get(4);
+            latlnarr[7] = closestBeaconsCoor.get(5);
+
+
+
             intent.putExtra("latlon", latlnarr);
             startActivity(intent);
 
@@ -150,6 +173,43 @@ public class MainActivity extends AppCompatActivity {
         });
 
     }
+
+    public <K, V> K getKey(Map<K, V> map, V value) {
+        for (Map.Entry<K, V> entry : map.entrySet()) {
+            if (entry.getValue().equals(value)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+    public List<Double> closestBeaconsCoordinates(Map<Beacon, Double> beaconAndDistance
+                                                          ,List<Double> distances, Ranger ranger){
+        List<Double> distances1 = (List) beaconAndDistance.values();
+        Collections.sort(distances1);
+        Collections.reverse(distances1);
+        List<Double> result = new ArrayList<>();
+
+
+        for(int i = 0; i <3; i++){
+//            String address = getKey(beaconAndDistance, distances1.get(i)).getHardwareAddress();
+//            LatLng latLng = beaconInfo.get(address);
+//            result.add(latLng.latitude);
+//            result.add(latLng.longitude);
+
+            for(Beacon b: beaconList){
+//                if(distances.contains(ranger.calculateDistance(b))){
+                if(distances.get(i).equals(ranger.calculateDistance(b))){
+                    LatLng latLng = beaconInfo.get(b.getHardwareAddress());
+                    result.add(latLng.latitude);
+                    result.add(latLng.longitude);
+//                  result.add(beaconInfo.get(b.getHardwareAddress()));
+                }
+            }
+        }
+        System.out.println(result);
+        return result;
+    }
+
 
     public LatLng getLocationByTrilateration(
             LatLng location1, double distance1,
