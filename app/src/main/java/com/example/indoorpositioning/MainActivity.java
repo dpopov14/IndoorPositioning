@@ -13,17 +13,30 @@ import androidx.core.app.ActivityCompat;
 
 import com.google.android.gms.maps.model.LatLng;
 
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import aga.android.luch.Beacon;
 import aga.android.luch.BeaconScanner;
 import aga.android.luch.Ranger;
 import aga.android.luch.parsers.BeaconParserFactory;
 import aga.android.luch.parsers.IBeaconParser;
+import aga.android.luch.rssi.ArmaFilter;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -37,11 +50,9 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("MissingPermission")
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)  {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-
         BeaconScanner beaconScanner = new BeaconScanner.Builder(this).setBeaconBatchListener(beacons -> {
             System.out.println("Scanning...");
             // Add to external list in order to pass beacons to the range finder (Hacky, fix later)
@@ -56,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
                     beaconList.add(b);
                 }
             }
-//            beaconList.addAll(beacons);
+           beaconList.addAll(beacons);
             for (Beacon b : beacons) {
                 System.out.println("Beacon with hardware address: "
                         + b.getIdentifierAsUuid(1)
@@ -64,13 +75,10 @@ public class MainActivity extends AppCompatActivity {
             }
         })
                 .setRangingEnabled(
-//                        new ArmaFilter.Builder()
+                        new ArmaFilter.Builder()
                 )
-                .setBeaconParser(beaconParser) // Set this scanners parser to the parser we created
+                .setBeaconParser(beaconParser)
                 .build();
-        // Create ranger
-//        Ranger ranger = beaconScanner.getRanger();
-
         // Check if app has permission for fine location and coarse location
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // Ask for permission in case app does not have it yet
@@ -107,107 +115,105 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-
-//            List<Double> distances = new ArrayList<>();
-//            for (Beacon b : beaconList) {
-//                distances.add(ranger.calculateDistance(b));
-//
-//            }
-//
-//            LatLng beacon1 = new LatLng(52.239605161068916, 6.8561297907129);
-//            LatLng beacon2 = new LatLng(52.23962647614489, 6.855389661731008);
-//            LatLng beacon3 = new LatLng(52.239152334736275, 6.85544656789618);
-//
-//            LatLng myLocation = getLocationByTrilateration(beacon1, distances.get(0), beacon2, distances.get(1), beacon3, distances.get(2));
-//            System.out.println("\n \n \n"+ myLocation.toString());
-
-
-
-
         });
 
         button = findViewById(R.id.result_button);
         button.setOnClickListener(v -> {
             Ranger ranger = beaconScanner.getRanger();
-            List<Double> distances = new ArrayList<>();
-
-            Map<Beacon, Double> beaconAndDistance= new HashMap<>();
-
-            for (Beacon b : beaconList) {
-
-                distances.add(ranger.calculateDistance(b));
-                beaconAndDistance.put(b, ranger.calculateDistance(b));
-
-            }
-
-            LatLng beacon1 = new LatLng(52.239605161068916, 6.8561297907129);
-            LatLng beacon2 = new LatLng(52.23962647614489, 6.855389661731008);
-            LatLng beacon3 = new LatLng(52.239152334736275, 6.85544656789618);
-
-            LatLng myLocation = getLocationByTrilateration(beacon1, distances.get(0), beacon2, distances.get(1), beacon3, distances.get(2));
-
-            System.out.println("\n \n \n"+ "Your location is: " + myLocation.toString());
-
             Intent intent = new Intent(MainActivity.this, MapActivity.class);
-//            double[] latlnarr = new double[2];
-            double[] latlnarr = new double[8]; //new code for coordinates
-            latlnarr[0] = myLocation.latitude;
-            latlnarr[1] = myLocation.longitude;
-
-            //New code for coordinates
-            List<Double> closestBeaconsCoor = closestBeaconsCoordinates(beaconAndDistance, distances, ranger);
-            latlnarr[2] = closestBeaconsCoor.get(0);
-            latlnarr[3] = closestBeaconsCoor.get(1);
-            latlnarr[4] = closestBeaconsCoor.get(2);
-            latlnarr[5] = closestBeaconsCoor.get(3);
-            latlnarr[6] = closestBeaconsCoor.get(4);
-            latlnarr[7] = closestBeaconsCoor.get(5);
-
-
-
-            intent.putExtra("latlon", latlnarr);
+            ArrayList<Double> sortedDistances = new ArrayList();
+            Map<Double, LatLng> ourSortedCoordinates = this.getBestCoordinates(ranger);
+            for (Double dist : ourSortedCoordinates.keySet()) {
+                System.out.println("Sorted " + dist);
+                sortedDistances.add(dist);
+            }
+            if(sortedDistances.size() < 3){
+                System.out.println("Not enough beacons to determine location");
+                return;
+            }
+            LatLng myLocation = getLocationByTrilateration(ourSortedCoordinates.get(sortedDistances.get(0)), sortedDistances.get(0), ourSortedCoordinates.get(sortedDistances.get(1)), sortedDistances.get(1),ourSortedCoordinates.get(sortedDistances.get(2)), sortedDistances.get(2));
+            intent.putExtra("latlon", myLocation);
+            System.out.println("\n \n \n"+ "Your location is: " + myLocation.toString());
             startActivity(intent);
-
-
-
         });
 
     }
 
-    public <K, V> K getKey(Map<K, V> map, V value) {
-        for (Map.Entry<K, V> entry : map.entrySet()) {
-            if (entry.getValue().equals(value)) {
-                return entry.getKey();
-            }
+    public Map<Double, LatLng> getBestCoordinates(Ranger ranger){
+        Map<String,LatLng> hardwareAndCoordinates = null;
+        Map<String, Double> hardwareAndDistance= new HashMap<>();
+        Map<Double,LatLng> ourCoordinates = new HashMap<>();
+
+        Intent intent = new Intent(MainActivity.this, MapActivity.class);
+
+
+        for (Beacon b : beaconList) {
+            hardwareAndDistance.put(b.getHardwareAddress(), ranger.calculateDistance(b));
         }
-        return null;
-    }
-    public List<Double> closestBeaconsCoordinates(Map<Beacon, Double> beaconAndDistance
-                                                          ,List<Double> distances, Ranger ranger){
-        List<Double> distances1 = (List) beaconAndDistance.values();
-        Collections.sort(distances1);
-        Collections.reverse(distances1);
-        List<Double> result = new ArrayList<>();
 
+        try {
+            hardwareAndCoordinates = this.getHardwareAndCoordinates();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        for(int i = 0; i <3; i++){
-//            String address = getKey(beaconAndDistance, distances1.get(i)).getHardwareAddress();
-//            LatLng latLng = beaconInfo.get(address);
-//            result.add(latLng.latitude);
-//            result.add(latLng.longitude);
-
-            for(Beacon b: beaconList){
-//                if(distances.contains(ranger.calculateDistance(b))){
-                if(distances.get(i).equals(ranger.calculateDistance(b))){
-                    LatLng latLng = beaconInfo.get(b.getHardwareAddress());
-                    result.add(latLng.latitude);
-                    result.add(latLng.longitude);
-//                  result.add(beaconInfo.get(b.getHardwareAddress()));
+        if(hardwareAndCoordinates != null){
+            for(String key: hardwareAndCoordinates.keySet()){
+                if(hardwareAndDistance.containsKey(key)){
+                    ourCoordinates.put(hardwareAndDistance.get(key),hardwareAndCoordinates.get(key));
                 }
             }
         }
-        System.out.println(result);
-        return result;
+
+        Map<Double, LatLng> ourSortedCoordinates = new TreeMap(ourCoordinates);
+        return  ourSortedCoordinates;
+    }
+
+
+    public Map<String,LatLng> getHardwareAndCoordinates() throws IOException {
+        Map<String,LatLng> hardCoordinates = new HashMap<>();
+
+        InputStream myInput = getAssets().open("beacons-Ravelijn.xls");
+
+        POIFSFileSystem myFileSystem = new POIFSFileSystem(myInput);
+
+        HSSFWorkbook myWorkBook = new HSSFWorkbook(myFileSystem);
+
+        HSSFSheet mySheet = myWorkBook.getSheetAt(0);
+        int rowno =0;
+
+        Iterator<Row> rowIter = mySheet.rowIterator();
+
+        while (rowIter.hasNext()) {
+            String currentAddress = null;
+            String currentLat  = null;
+            String currentLon = null;
+            System.out.println("Row no " + rowno);
+            HSSFRow myRow = (HSSFRow) rowIter.next();
+            if(rowno !=0) {
+                Iterator<Cell> cellIter = myRow.cellIterator();
+                int colno =0;
+                while (cellIter.hasNext()) {
+                    HSSFCell myCell = (HSSFCell) cellIter.next();
+                    if (colno==2){
+                        currentAddress = myCell.toString();
+                        System.out.println("YESSSSSSSS " + currentAddress);
+                    }else if (colno==3){
+                        currentLon = myCell.toString();
+                        System.out.println(currentLon);
+                    }else if (colno==4){
+                        currentLat = myCell.toString();
+                        System.out.println(currentLat);
+                    }
+                    if (currentLat != null && currentLon != null){
+                        hardCoordinates.put(currentAddress,new LatLng(Double.parseDouble(currentLat),Double.parseDouble(currentLon)));
+                    }
+                    colno++;
+                }
+            }
+            rowno++;
+        }
+        return hardCoordinates;
     }
 
 

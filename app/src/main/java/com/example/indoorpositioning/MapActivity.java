@@ -27,8 +27,8 @@ public class MapActivity  extends AppCompatActivity implements OnMapReadyCallbac
         // Get the SupportMapFragment and request notification when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
-        //assert mapFragment != null;
-        assert mapFragment != null;
+
+
         mapFragment.getMapAsync(this);
 
 
@@ -38,7 +38,7 @@ public class MapActivity  extends AppCompatActivity implements OnMapReadyCallbac
 
         });
 
-        LatLng coordinates;
+
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
             double[] value = extras.getDoubleArray("latlon");
